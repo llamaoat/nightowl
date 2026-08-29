@@ -1,0 +1,35 @@
+{
+  "reserve": {
+    "blockPct": 0.25,
+    "weeklyPct": 0.2
+  },
+  "quota": {
+    "blockLimit": null,
+    "weekLimit": null,
+    "providerCommand": null
+  },
+  "run": {
+    "allowEdits": false,
+    "useWorktree": true,
+    "timeoutMinutes": 45,
+    "model": null,
+    "maxBudgetFraction": 0.8,
+    "checkRepo": true
+  },
+  "ignore": [],
+  "ask": {
+    "staleDays": 7,
+    "cooldownHours": 24,
+    "enabled": true
+  },
+  "window": "2w",
+  "eval": {
+    "horizon": "2w"
+  },
+  "notify": {
+    "enabled": true,
+    "desktop": true,
+    "ntfy": null,
+    "webhook": null
+  }
+}

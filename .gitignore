@@ -1,0 +1,45 @@
+# ── dependencies ──
+node_modules/
+
+# ── nightowl runtime state ──
+# By default this lives in ~/.nightowl and never touches the repo. But
+# NIGHTOWL_STATE_DIR can point anywhere, including here — and runs.jsonl
+# records ABSOLUTE PATHS to your projects, so committing it leaks your
+# directory layout. Ignore it defensively.
+.nightowl/
+state/
+runs.jsonl
+verdicts.json
+calibration.json
+nudge.json
+ask.json
+active/
+worktrees/
+nightowl-*/
+
+# ── config ──
+# config.example.json IS committed; a real config may contain an ntfy topic
+# or webhook URL, which are effectively secrets.
+config.json
+.env
+.env.*
+
+# ── test scratch ──
+fixtures/
+*.tmp
+
+# ── build / publish artefacts ──
+*.tgz
+dist/
+coverage/
+
+# ── editors and OS ──
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ── logs ──
+*.log
+npm-debug.log*
