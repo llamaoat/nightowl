@@ -1,0 +1,13 @@
+{
+  "name": "nightowl-marketplace",
+  "owner": {
+    "name": "llamaoat"
+  },
+  "plugins": [
+    {
+      "name": "nightowl",
+      "source": "./",
+      "description": "Spend unused Claude quota finishing work you already started."
+    }
+  ]
+}

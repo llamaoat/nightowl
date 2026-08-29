@@ -1,0 +1,44 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        node: ['18', '20', '22']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Syntax check every module
+        run: |
+          for f in bin/*.mjs lib/*.mjs hooks/*.mjs; do node --check "$f"; done
+      - name: Validate plugin manifests
+        run: |
+          node -e "JSON.parse(require('fs').readFileSync('.claude-plugin/plugin.json'))"
+          node -e "JSON.parse(require('fs').readFileSync('.claude-plugin/marketplace.json'))"
+          node -e "JSON.parse(require('fs').readFileSync('hooks/hooks.json'))"
+      - name: No unreplaced placeholders
+        run: |
+          if grep -rn "YOUR_USERNAME" --include=*.md --include=*.json .; then
+            echo "::error::Template placeholders are still present"
+            exit 1
+          fi
+
+      - name: No stray files
+        run: |
+          if ls -d '{'* 2>/dev/null; then
+            echo "::error::Stray directory from a shell brace expansion"
+            exit 1
+          fi
+
+      - name: Test
+        run: npm test

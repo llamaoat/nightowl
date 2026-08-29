@@ -1,0 +1,17 @@
+{
+  "name": "nightowl",
+  "version": "0.11.1",
+  "description": "Decide which of your stalled Claude Code sessions deserves the next hour, and spend surplus quota finishing it.",
+  "author": {
+    "name": "llamaoat"
+  },
+  "homepage": "https://github.com/llamaoat/nightowl",
+  "license": "MIT",
+  "keywords": [
+    "quota",
+    "usage",
+    "sessions",
+    "resume",
+    "automation"
+  ]
+}
