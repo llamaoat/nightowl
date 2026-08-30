@@ -1,19 +1,17 @@
 # nightowl
 
-**You have forty stalled Claude Code sessions. Which one deserves the next hour?**
+**Picks which of your stalled Claude Code sessions is worth finishing, and can finish it.**
 
-nightowl reads your local Claude Code history, works out which unfinished
-sessions are actually close to done, and — if you want — spends surplus quota
-finishing one while you're not there.
+Claude Code already schedules work — `/schedule`, Desktop scheduled tasks, and
+cloud Routines all run a prompt on a cadence. What none of them do is decide
+*which* of your unfinished sessions deserves the slot. That's this.
 
 ```
   nightowl  ·  unused quota, unfinished work  ·  last 2w
 
   5h window   ████████░░░░░░░░░░░░░░░░  62k left of 190k  · resets in 38m
-  weekly      ██████████████████░░░░░░  4.1M left of 6.0M
 
   ■ 15k spendable (after 25% block + 20% weekly reserve)
-  ▲ Use it or lose it — 62k expires in 38m
 
   ▸ 1. Add unit tests for the parser
       score 87  ·  ~/dev/invoice-parser (main)
@@ -22,14 +20,14 @@ finishing one while you're not there.
       resume: nightowl run aaaa1111
 ```
 
-No dependencies. No telemetry. **Reading your history costs zero tokens** — it
-is local file parsing and `git`, not model calls.
+Reading your history costs zero tokens — local file parsing and `git`, no model
+calls. No dependencies, no telemetry.
 
 ---
 
-## Try it in 30 seconds
+## Install
 
-Requires Node 18+ and Claude Code installed.
+Node 18+ and Claude Code.
 
 ```bash
 git clone https://github.com/llamaoat/nightowl.git
@@ -37,225 +35,9 @@ cd nightowl && npm link
 nightowl
 ```
 
-That's it. It reads `~/.claude/projects`, prints the dashboard, and **changes
-nothing**. Nothing written, nothing spent, no files touched.
+Reads `~/.claude/projects`, prints the dashboard, changes nothing.
 
-If it says *"No Claude Code sessions found"*, you haven't used Claude Code on
-this machine yet — that's the only requirement.
-
----
-
-## Your first five minutes
-
-### 1. See what it found
-
-```bash
-nightowl --window 1w
-```
-
-One week is a good place to start. `2w` is the default; `5d`, `30d` and `all`
-also work.
-
-### 2. See what it ignored
-
-```bash
-nightowl --window 1w --show-excluded
-```
-
-This is the important one. nightowl throws out plain chats ("explain this
-error"), read-only research, and finished work. **Check it didn't bin something
-you care about.** If it did, that's worth reporting — the known blind spot is a
-design discussion with no file edits and no todo list.
-
-### 3. Ask why something is ranked where it is
-
-```bash
-nightowl explain aaaa1111        # first few characters of the session id
-```
-
-You get arithmetic, not a vibe:
-
-```
-  score 87 = finishability 0.87 × autonomy 1.00 × fit 1.00 × 100
-  signals
-    · 3/5 todos done
-    · stopped at a usage limit and never picked back up
-    · remaining work is mechanical
-  cost estimate ~30k via per-completed-todo
-```
-
-If you disagree, you can point at the number that's wrong.
-
-### 4. Look at what it *would* do
-
-```bash
-nightowl run
-```
-
-**This spends nothing.** It prints the exact instructions it would send, then
-stops. Read them. This is the moment to decide whether you trust it.
-
----
-
-## Actually running something
-
-```bash
-nightowl run --go
-```
-
-`--go` is required. Without it, everything is a dry run, always.
-
-By default a run is **read-only** — it can look at your code and think, but not
-change it. To let it edit files:
-
-```bash
-nightowl run --go --allow-edits
-```
-
-That works in an isolated git worktree under `~/.nightowl/worktrees/`. Your
-branch is never touched, and if the worktree can't be created the run *aborts*
-rather than falling back to something riskier. It never commits, pushes, or
-tags.
-
-Review afterwards with the command nightowl prints for you:
-
-```bash
-git -C ~/dev/invoice-parser diff nightowl-aaaa1111
-```
-
----
-
-## What happens during a run
-
-You don't write instructions. nightowl reads the todo list Claude was already
-keeping in that session, builds the prompt from it, and reopens the same
-conversation so the context is still there.
-
-While it runs, it gets budget reminders at 50%, 75% and 90% spent — each one
-telling it to narrow scope rather than start something new. At 90% it stops and
-writes a short handoff note: what it did, what it didn't, the next step.
-
-If it hits the ceiling it gets killed. That's the ceiling working, not a
-failure.
-
----
-
-## Getting told when it's done
-
-nightowl runs while you're away — so a run that finishes silently at 2am is
-indistinguishable from one that never started, until you happen to check.
-
-```bash
-nightowl notify           # what's configured
-nightowl notify --test    # send one now
-```
-
-**Desktop notifications work with no setup** (macOS `osascript`, Linux
-`notify-send`).
-
-**To get them on your phone**, use [ntfy](https://ntfy.sh) — no account
-needed. Install the app, pick a topic name, and add it to
-`~/.nightowl/config.json`:
-
-```jsonc
-{ "notify": { "ntfy": "https://ntfy.sh/your-unique-topic-name" } }
-```
-
-Pick something unguessable — anyone who knows the topic can read it.
-
-Or POST the run summary anywhere with `"webhook": "https://..."` — Slack,
-Discord, Home Assistant.
-
-You get told when a run **finishes**, when it **uses up its budget** and stops
-at the ceiling, and when it **fails to launch**. Nothing is sent for dry runs;
-a notification for something that didn't happen just teaches you to ignore
-notifications.
-
-Delivery can never affect a run. Every send is timeboxed and its failure
-swallowed — a flaky network will not turn a successful run into a failed one.
-
-### Watching from your phone
-
-Anthropic's mobile apps are worth having alongside this. Claude Code sessions
-started on your machine can be monitored and steered from the **Claude iOS and
-Android apps**, so when nightowl notifies you that a run finished, you can read
-the handoff note and keep going from wherever you are rather than waiting until
-you're back at your desk.
-
-The pairing that works: nightowl decides *what* to work on and tells you when
-it's done; the mobile app is how you check the result and reply.
-
----
-
-## Your first week
-
-Three commands worth running once you have some history.
-
-**Did it pick well?**
-
-```bash
-nightowl eval
-```
-
-Replays your own history and checks the ranking against what you actually did —
-including against dumb baselines like "just pick the most recent". If nightowl
-can't beat those, it says so plainly. This is the most useful output the project
-produces, especially when it's bad news.
-
-**Did you keep the work?**
-
-```bash
-nightowl outcomes
-```
-
-Infers `adopted` / `discarded` / `ignored` from what happened to each worktree.
-No feedback form.
-
-**Were the cost estimates right?**
-
-```bash
-nightowl calibrate           # show the analysis
-nightowl calibrate --apply   # use it
-```
-
-Compares predicted against actual cost across your runs and corrects the
-estimator.
-
----
-
-## Telling it what to ignore
-
-nightowl occasionally asks — at most once a fortnight, and only about a stalled
-session where the repo gives no clue either way. You can also just tell it:
-
-```bash
-nightowl verdict aaaa1111 dead      # never suggest this again
-nightowl verdict aaaa1111 live      # I'm still on this
-nightowl verdict aaaa1111 snooze    # not this week
-nightowl verdicts                   # what you've ruled on
-```
-
-`dead` is permanent. This is how you correct a bad pick — no config editing.
-
----
-
-## Running it unattended
-
-```bash
-nightowl watch --go
-```
-
-Polls, and does nothing until your window is nearly over with quota unspent.
-
-It works, but use the manual version for a few weeks first, until you've seen
-enough of its picks to trust them. Reading a dry run costs nothing.
-
----
-
-## Install as a Claude Code plugin
-
-Adds `/nightowl` in chat, a quiet nudge when quota is about to expire, and the
-budget reminders during runs.
+As a Claude Code plugin (adds `/nightowl` and budget reminders during runs):
 
 ```
 /plugin marketplace add llamaoat/nightowl
@@ -264,60 +46,153 @@ budget reminders during runs.
 
 ---
 
-## All commands
+## Use
 
-| Command | What it does |
-|---|---|
-| `nightowl` | Dashboard (same as `status`) |
-| `nightowl explain <id>` | Full scoring breakdown for one session |
-| `nightowl run [id]` | Dry run; add `--go` to actually spend |
-| `nightowl watch` | Fire only when quota is about to expire |
-| `nightowl verdict <id> <v>` | Record `live` / `dead` / `snooze` |
-| `nightowl outcomes` | What you did with past runs |
-| `nightowl calibrate` | Fix cost estimates from predicted vs actual |
-| `nightowl eval` | Measure the ranking against your real history |
-| `nightowl notify` | Notification setup; `--test` sends one now |
+```bash
+nightowl --window 1w                   # dashboard: 5d, 1w, 2w, 30d, all
+nightowl --window 1w --show-excluded   # what it filtered out, and why
+nightowl explain aaaa1111              # the scoring arithmetic
+nightowl run                           # dry run — prints the prompt, spends nothing
+nightowl run --go                      # actually run it
+nightowl run --go --allow-edits        # permit file edits, in an isolated worktree
+```
 
-**Useful flags**
+`--go` is required to spend anything. Runs are read-only unless `--allow-edits`.
 
-| Flag | Meaning |
-|---|---|
-| `--window 5d` | How far back to look: `5d`, `1w`, `2w`, `30d`, `all` |
-| `--show-excluded` | List what was filtered out, and why |
-| `--include-research` | Also consider read-only research sessions |
-| `--go` | Actually spend. Without it, always a dry run |
-| `--allow-edits` | Permit file edits, in an isolated worktree |
-| `--terse` | Ask for concise output during the run |
-| `--json` | Machine-readable output |
+Check `--show-excluded` early. It drops plain chats, read-only research, and
+finished work — confirm it isn't dropping something you care about.
 
 ---
 
-## Safety, briefly
+## How it ranks
 
-All of these are on by default and have to be turned off deliberately:
+```
+score = finishability × autonomy × fit × 100
+```
 
-- Nothing is spent without `--go`
-- No files are edited without `--allow-edits`
-- Edits happen in a detached git worktree, never your branch
+Multiplied, so a zero on any axis disqualifies.
+
+**finishability** — how close to done, from the session's todo list. Peaks
+around 80%: far enough to plausibly finish, not so far that nothing's left.
+×1.6 if it stopped at a usage limit and was never picked back up, ×0.25 if the
+last message reads like a sign-off. Decays with a 3-day half-life.
+
+**autonomy** — can it proceed without you? A session parked on *"Redis or
+Postgres?"* scores ×0.15 regardless of how close to done it is.
+
+**fit** — does the estimated cost fit the budget? Estimated from the session's
+own observed tokens-per-todo, not a constant.
+
+`nightowl explain <id>` prints the arithmetic for any candidate.
+
+Before scoring, it asks git what happened *after* the session ended: remaining
+todos appearing in later commits (`superseded`, ×0.05), a dormant repo, a
+deleted branch, uncommitted work still in the tree.
+
+---
+
+## Correcting it
+
+The completeness figure comes from Claude's todo list, which drifts from
+reality.
+
+```bash
+nightowl progress aaaa1111 80%      # or 0.8, or 4/5
+nightowl progress aaaa1111 --clear
+nightowl verdict aaaa1111 dead      # never suggest again
+nightowl verdict aaaa1111 live      # still working on it
+```
+
+Your figure replaces the todo ratio but not the curve — claiming 100% *lowers*
+the score, since a finished session has nothing left to do. To run something
+regardless of ranking, name it: `nightowl run <id> --go`.
+
+Overrides expire if you work in that session again.
+
+---
+
+## Measuring it
+
+```bash
+nightowl eval          # does the ranking beat "just pick the most recent"?
+nightowl outcomes      # did you keep the work? (from worktree fate)
+nightowl calibrate     # were cost estimates right? --apply to correct them
+```
+
+`eval` replays your history, reconstructs what nightowl would have seen at each
+past moment, and checks its pick against what you actually resumed. It compares
+against naive baselines and says plainly when it loses.
+
+Three things keep it honest: git queries are bounded to what existed at the
+replay point (no hindsight), sessions too recent to have a label are excluded
+rather than counted as negatives, and every figure carries a Wilson interval.
+
+The label is "did you resume it", not "was it worth resuming" — read the
+numbers as an upper bound on badness.
+
+---
+
+## During a run
+
+nightowl reopens the session and builds the prompt from its own leftover todo
+list. Budget reminders fire at 50%, 75% and 90% spent, each narrowing scope
+rather than starting new work. At 90% it writes a handoff note and stops.
+
+Notifications on finish, budget exhaustion, or failed launch:
+
+```bash
+nightowl notify --test
+```
+
+Desktop needs no setup. For your phone, add an [ntfy](https://ntfy.sh) topic to
+`~/.nightowl/config.json`:
+
+```jsonc
+{ "notify": { "ntfy": "https://ntfy.sh/your-unique-topic" } }
+```
+
+Pick something unguessable — anyone with the topic can read it.
+
+---
+
+## Scheduling
+
+Use Claude Code's own: Desktop scheduled tasks, or cloud Routines, which run
+with your laptop closed. nightowl picks the target; they run it.
+
+```bash
+nightowl status --json | jq -r '.candidates[0].sessionId'
+```
+
+`nightowl watch --go` polls locally and fires when quota is about to expire. It
+needs a terminal left open and predates Routines. Kept for now; use Routines
+instead.
+
+---
+
+## Safety
+
+On by default, off only deliberately:
+
+- nothing spent without `--go`
+- no edits without `--allow-edits`
+- edits happen in a detached git worktree, never your branch
 - 25% of the 5-hour window and 20% of the week are never spendable
-- A token ceiling, enforced by killing the run (see the caveat below)
-- 45-minute wall-clock timeout
-- No commits, pushes, or tags, ever
-- Below score 25 it refuses to pick at all
+- a token ceiling, enforced by killing the run
+- 45-minute timeout
+- no commits, pushes or tags
+- below score 25 it refuses to pick
 
 `--dangerously-skip-permissions` is unreachable from every code path.
 
-**One honest caveat about the ceiling.** It is checked after each metered turn,
-so a run can overshoot by up to one turn's cost — there is no way to cancel a
-response before it arrives. In practice that is a few thousand tokens. On a very
-small budget the overshoot can be proportionally large, so do not treat the
-ceiling as a guarantee of an exact spend.
+The ceiling is checked after each turn, so a run can overshoot by up to one
+turn's cost. On a small budget that overshoot is proportionally large.
 
 ---
 
-## Configuration
+## Config
 
-Optional. Lives at `~/.nightowl/config.json` — see `config.example.json`.
+Optional, `~/.nightowl/config.json`. See `config.example.json`.
 
 ```jsonc
 {
@@ -328,58 +203,45 @@ Optional. Lives at `~/.nightowl/config.json` — see `config.example.json`.
 }
 ```
 
-Silence the occasional question with `NIGHTOWL_ASK=off`, and the session-start
-nudge with `NIGHTOWL_NUDGE=off`.
+`NIGHTOWL_ASK=off` silences the occasional question, `NIGHTOWL_NUDGE=off` the
+session-start nudge.
 
 ---
 
-## Other agent CLIs
+## Limitations
 
-This release supports **Claude Code only**.
+**Quota figures are estimates.** No public API reports a subscription's
+remaining tokens. Everything is inferred from your transcripts and calibrated
+against your history. Good for "do I have room and is it expiring"; not a
+billing oracle.
 
-The internals are already CLI-agnostic — the ranking model, repo archaeology,
-chat-vs-work classification, eval harness and calibration all operate on a
-normalised session record. Adding another CLI means writing one descriptor in
-`lib/adapters/index.mjs`, not touching the ranking.
+**Claude Code only.** claude.ai chat history isn't readable from your machine —
+no local store, no read API. A Gemini CLI adapter exists on the `adapters`
+branch, written from docs and unverified.
 
-A Gemini CLI adapter is on the `adapters` branch. It is deliberately not in the
-main release: it was written from published docs rather than tested against
-real transcripts, and an adapter that silently produces wrong numbers is worse
-than no adapter.
+**Overlaps with shipped features.** Claude Code auto-continues limit-interrupted
+sessions by default, so nightowl skips recent limit-stops and focuses on older
+and non-limit stalls. Desktop scheduled tasks also offer worktree isolation.
 
-## Things to know before relying on it
+**The transcript format is undocumented and moves between versions.** nightowl
+parses defensively and handles both known directory layouts. If an update
+breaks it, the symptom is "no stalled sessions found" when you know you have
+some — that's a bug report, not an empty history.
 
-**Quota numbers are estimates.** There is no public API that reports a
-subscription's remaining tokens. Everything is inferred from your own
-transcripts and calibrated against your own history. It reliably answers *"do I
-have room, and is it about to reset?"* It is not a billing oracle.
+**The ranking is tuned on synthetic fixtures, not real data.** `nightowl eval`
+exists to find out whether it's wrong for you.
 
-**Claude Code only.** Your claude.ai chat history isn't reachable from your
-machine — no local store, no read API. If your unfinished work lives in web
-chats, nothing here can see it.
-
-**Claude Code already auto-continues limit-interrupted sessions**, on by
-default. nightowl deliberately stays out of the way for recent limit-stops and
-focuses on everything else: old stalls, and sessions that stopped because you
-closed the laptop.
-
-**The ranking is tuned on synthetic fixtures, not real data.** It will be wrong
-for someone's workflow. `nightowl eval` exists so you can find out whether it's
-wrong for yours.
-
-**POSIX only.** Linux and macOS, tested on Node 18/20/22.
+**POSIX only.** Linux and macOS, Node 18/20/22.
 
 ---
 
 ## Contributing
 
-The most valuable thing you can send is `nightowl eval` output from real
-history — **especially if nightowl ties or loses to a baseline.** After that, a
-failing fixture for a bad ranking beats any heuristic tweak.
+Most useful contribution: `nightowl eval` output from real history, especially
+when nightowl ties or loses to a baseline. After that, a failing fixture for a
+bad ranking.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). [DESIGN.md](DESIGN.md) explains why
-things work the way they do.
-
-## License
+[CONTRIBUTING.md](CONTRIBUTING.md) · [DESIGN.md](DESIGN.md) for why things work
+the way they do.
 
 MIT
